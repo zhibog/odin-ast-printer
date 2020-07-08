@@ -58,7 +58,7 @@ generate_foreign_block_decl :: proc(sb: ^strings.Builder, r: ^ast.Foreign_Block_
     strings.write_string(sb, r.tok.text);
     strings.write_string(sb, " ");
     switch s in &r.foreign_library.derived {
-        case ast.Ident: generate_ident(sb, &s, indent, false);
+        case ast.Ident: generate_ident(sb, &s, indent);
         case: fmt.println("generate_foreign_block_decl foreign_library\n", s^);
     }
     strings.write_string(sb, " {\n");
@@ -76,7 +76,7 @@ generate_foreign_import_decl :: proc(sb: ^strings.Builder, r: ^ast.Foreign_Impor
     strings.write_string(sb, " ");
     if r.name != nil {
         switch s in &r.name.derived {
-            case ast.Ident: generate_ident(sb, &s, indent, false);
+            case ast.Ident: generate_ident(sb, &s, indent);
             case: fmt.println("generate_foreign_import_decl\n", s^);
         }
     }
@@ -98,7 +98,7 @@ generate_value_decl :: proc(sb: ^strings.Builder, decl: ^ast.Value_Decl, indent:
     for v, i in decl.names {
         switch s in &v.derived {
             case ast.Ident: {
-                generate_ident(sb, &s, indent, false);
+                generate_ident(sb, &s, indent);
                 if names_length > 1 && i < names_length - 1 do strings.write_string(sb, ", ");
             }
             case: fmt.println("generate_value_decl names\n", s^);
@@ -109,7 +109,7 @@ generate_value_decl :: proc(sb: ^strings.Builder, decl: ^ast.Value_Decl, indent:
         strings.write_string(sb, ": ");
         switch s in &decl.type.derived {
             case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
-            case ast.Ident:         generate_ident(sb, &s, indent, false);
+            case ast.Ident:         generate_ident(sb, &s, indent);
             case ast.Array_Type:    generate_array_type(sb, &s, indent);
             case ast.Pointer_Type:  generate_pointer_type(sb, &s, indent);
             case ast.Index_Expr:    generate_index_expr(sb, &s, indent);
@@ -153,7 +153,7 @@ generate_value_decl :: proc(sb: ^strings.Builder, decl: ^ast.Value_Decl, indent:
                 if i == 0 {
                     print_separator(decl.type, decl.is_mutable, sb);
                 }
-                generate_ident(sb, &s, indent, false);
+                generate_ident(sb, &s, indent);
                 if values_length > 1 && i < values_length - 1 do strings.write_string(sb, ", ");
                 if i == values_length - 1 do strings.write_string(sb, ";");
             }
@@ -278,7 +278,7 @@ generate_distinct_type :: proc(sb: ^strings.Builder, a: ^ast.Distinct_Type, inde
     switch s in &a.type.derived {
         case ast.Bit_Set_Type: generate_bit_set_type(sb, &s, indent);
         case ast.Array_Type:   generate_array_type(sb, &s, indent);
-        case ast.Ident:        generate_ident(sb, &s, indent, false);
+        case ast.Ident:        generate_ident(sb, &s, indent);
         case: fmt.println("generate_distinct_type type\n", s^);
     }
     strings.write_string(sb, ";");
@@ -290,13 +290,13 @@ generate_array_type :: proc(sb: ^strings.Builder, a: ^ast.Array_Type, indent: in
         switch s in &a.len.derived {
             case ast.Basic_Lit: generate_basic_lit(sb, &s, indent);
             case ast.Unary_Expr: generate_unary_expr(sb, &s, indent);
-            case ast.Ident:     generate_ident(sb, &s, indent, false);
+            case ast.Ident:     generate_ident(sb, &s, indent);
             case: fmt.println("generate_array_type len\n", s^);
         }
     }
     strings.write_string(sb, "]");
     switch s in &a.elem.derived {
-        case ast.Ident: generate_ident(sb, &s, indent, false);
+        case ast.Ident: generate_ident(sb, &s, indent);
         case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
         case ast.Poly_Type: generate_poly_type(sb, &s, indent);
         case: fmt.println("generate_array_type elem\n", s^);
@@ -309,7 +309,7 @@ generate_enum_type :: proc(sb: ^strings.Builder, st: ^ast.Enum_Type, indent: int
         switch s in &st.base_type.derived {
             case ast.Ident: {
                 strings.write_string(sb, " ");
-                generate_ident(sb, &s, indent, false);
+                generate_ident(sb, &s, indent);
             }
             case: fmt.println("generate_enum_type base_type\n", s^);
         }
@@ -319,7 +319,7 @@ generate_enum_type :: proc(sb: ^strings.Builder, st: ^ast.Enum_Type, indent: int
         for in 0..<indent do strings.write_string(sb, "    ");
         switch s in &v.derived {
             case ast.Ident: {
-                generate_ident(sb, &s, indent, false);
+                generate_ident(sb, &s, indent);
                 strings.write_string(sb, ",\n");
             }
             case: fmt.println("generate_enum_type fields\n", s^);
@@ -370,7 +370,7 @@ generate_union_type :: proc(sb: ^strings.Builder, u: ^ast.Union_Type, indent: in
         for in 0..<indent do strings.write_string(sb, "    ");
         switch s in &v.derived {
             case ast.Ident: {
-                generate_ident(sb, &s, indent, false);
+                generate_ident(sb, &s, indent);
                 if length > 1 do strings.write_string(sb, ",\n");
             }
             case: fmt.println("generate_union_type variants\n", s^);
@@ -432,7 +432,7 @@ generate_proc_type :: proc(sb: ^strings.Builder, p: ^ast.Proc_Type, indent: int)
                 switch b in &m.derived {
                     case ast.Ident: {
                         if b.name != "" {
-                            generate_ident(sb, &b, indent, false);
+                            generate_ident(sb, &b, indent);
                             if j == names_length - 1 do strings.write_string(sb, ": ");
                             else do strings.write_string(sb, ", ");
                             has_name = true;
@@ -445,7 +445,7 @@ generate_proc_type :: proc(sb: ^strings.Builder, p: ^ast.Proc_Type, indent: int)
             }
             switch s in &v.type.derived {
                 case ast.Pointer_Type: generate_pointer_type(sb, &s, indent);
-                case ast.Ident:  generate_ident(sb, &s, indent, false);
+                case ast.Ident:  generate_ident(sb, &s, indent);
                 case ast.Array_Type: generate_array_type(sb, &s, indent);
                 case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
                 case: fmt.println("generate_proc_type results type\n", s^);
@@ -459,14 +459,14 @@ generate_proc_type :: proc(sb: ^strings.Builder, p: ^ast.Proc_Type, indent: int)
 generate_bit_set_type :: proc(sb: ^strings.Builder, m: ^ast.Bit_Set_Type, indent: int) {
     strings.write_string(sb, "bit_set[");
     switch s in &m.elem.derived {
-        case ast.Ident: generate_ident(sb, &s, indent, false);
+        case ast.Ident: generate_ident(sb, &s, indent);
         case ast.Binary_Expr: generate_binary_expr(sb, &s, indent);
         case: fmt.println("generate_bit_set_type elem\n", s^);
     }
     if m.underlying != nil {
         strings.write_string(sb, "; ");
         switch s in &m.underlying.derived {
-            case ast.Ident: generate_ident(sb, &s, indent, false);
+            case ast.Ident: generate_ident(sb, &s, indent);
             case: fmt.println("generate_bit_set_type underlying\n", s^);
         }
     }
@@ -501,12 +501,12 @@ generate_bit_field_type :: proc(sb: ^strings.Builder, st: ^ast.Bit_Field_Type, i
 generate_map_type :: proc(sb: ^strings.Builder, m: ^ast.Map_Type, indent: int) {
     strings.write_string(sb, "map[");
     switch s in &m.key.derived {
-        case ast.Ident: generate_ident(sb, &s, indent, false);
+        case ast.Ident: generate_ident(sb, &s, indent);
         case: fmt.println("generate_map_type key\n", s^);
     }
     strings.write_string(sb, "]");
     switch s in &m.value.derived {
-        case ast.Ident: generate_ident(sb, &s, indent, false);
+        case ast.Ident: generate_ident(sb, &s, indent);
         case: fmt.println("generate_map_type value\n", s^);
     }
 }
@@ -518,7 +518,7 @@ generate_dynamic_array_type :: proc(sb: ^strings.Builder, b: ^ast.Dynamic_Array_
 
     }
     switch s in &b.elem.derived {
-        case ast.Ident: generate_ident(sb, &s, indent, false);
+        case ast.Ident: generate_ident(sb, &s, indent);
         case: fmt.println("generate_dynamic_array_type elem\n", s^);
     }
 }
@@ -527,7 +527,7 @@ generate_poly_type :: proc(sb: ^strings.Builder, p: ^ast.Poly_Type, indent: int)
     switch s in &p.type.derived {
         case ast.Ident: {
             strings.write_string(sb, "$");
-            generate_ident(sb, &s, indent, false);
+            generate_ident(sb, &s, indent);
         } 
         case: fmt.println("generate_poly_type type\n", s^);
     }
@@ -535,7 +535,7 @@ generate_poly_type :: proc(sb: ^strings.Builder, p: ^ast.Poly_Type, indent: int)
         strings.write_string(sb, "/");
         switch s in &p.specialization.derived {
             case ast.Call_Expr: generate_call_expr(sb, &s, indent);
-            case ast.Ident: generate_ident(sb, &s, indent, false);
+            case ast.Ident: generate_ident(sb, &s, indent);
             case ast.Array_Type: generate_array_type(sb, &s, indent);
             case: fmt.println("generate_poly_type specialization\n", s^);
         }
@@ -545,7 +545,7 @@ generate_poly_type :: proc(sb: ^strings.Builder, p: ^ast.Poly_Type, indent: int)
 generate_pointer_type :: proc(sb: ^strings.Builder, p: ^ast.Pointer_Type, indent: int) {
     strings.write_string(sb, "^");
     switch s in &p.elem.derived {
-        case ast.Ident: generate_ident(sb, &s, indent, false);
+        case ast.Ident: generate_ident(sb, &s, indent);
         case ast.Poly_Type: {
             generate_poly_type(sb, &s, indent);
         }
@@ -560,7 +560,7 @@ generate_pointer_type :: proc(sb: ^strings.Builder, p: ^ast.Pointer_Type, indent
 generate_block_stmt :: proc(sb: ^strings.Builder, b: ^ast.Block_Stmt, indent: int) {
     if b.label != nil {
         switch s in &b.label.derived {
-            case ast.Ident: generate_ident(sb, &s, indent, false);
+            case ast.Ident: generate_ident(sb, &s, indent);
             case: fmt.println("generate_block_stmt label\n", s^);
         }
         strings.write_string(sb, ": ");
@@ -618,7 +618,7 @@ generate_type_switch_stmt :: proc(sb: ^strings.Builder, r: ^ast.Type_Switch_Stmt
     }
     if r.label != nil {
         switch s in &r.label.derived {
-            case ast.Ident: generate_ident(sb, &s, indent, false);
+            case ast.Ident: generate_ident(sb, &s, indent);
             case: fmt.println("generate_type_switch_stmt label\n", s^);
         }
         strings.write_string(sb, ": ");
@@ -652,7 +652,7 @@ generate_switch_stmt :: proc(sb: ^strings.Builder, r: ^ast.Switch_Stmt, indent: 
     }
     if r.label != nil {
         switch s in &r.label.derived {
-            case ast.Ident: generate_ident(sb, &s, indent, false);
+            case ast.Ident: generate_ident(sb, &s, indent);
             case: fmt.println("generate_switch_stmt label\n", s^);
         }
         strings.write_string(sb, ": ");
@@ -667,7 +667,7 @@ generate_switch_stmt :: proc(sb: ^strings.Builder, r: ^ast.Switch_Stmt, indent: 
     }
     if r.cond != nil {
         switch s in &r.cond.derived {
-            case ast.Ident: generate_ident(sb, &s, indent, false);
+            case ast.Ident: generate_ident(sb, &s, indent);
             case: fmt.println("generate_switch_stmt cond\n", s^);
         }
     }
@@ -684,7 +684,7 @@ generate_switch_stmt :: proc(sb: ^strings.Builder, r: ^ast.Switch_Stmt, indent: 
 generate_range_stmt :: proc(sb: ^strings.Builder, r: ^ast.Range_Stmt, indent: int) {
     if r.label != nil {
         switch s in &r.label.derived {
-            case ast.Ident: generate_ident(sb, &s, indent, false);
+            case ast.Ident: generate_ident(sb, &s, indent);
             case: fmt.println("generate_range_stmt label\n", s^);
         }
         strings.write_string(sb, ": ");
@@ -692,14 +692,14 @@ generate_range_stmt :: proc(sb: ^strings.Builder, r: ^ast.Range_Stmt, indent: in
     strings.write_string(sb, "for ");
     if r.val0 != nil {
         switch s in &r.val0.derived {
-            case ast.Ident: generate_ident(sb, &s, indent, false);
+            case ast.Ident: generate_ident(sb, &s, indent);
             case: fmt.println("generate_range_stmt val0\n", s^);
         }
     }
     if r.val1 != nil {
         strings.write_string(sb, ", ");
         switch s in &r.val1.derived {
-            case ast.Ident: generate_ident(sb, &s, indent, false);
+            case ast.Ident: generate_ident(sb, &s, indent);
             case: fmt.println("generate_range_stmt val1\n", s^);
         }
     }
@@ -707,7 +707,7 @@ generate_range_stmt :: proc(sb: ^strings.Builder, r: ^ast.Range_Stmt, indent: in
     if r.expr != nil {
         switch s in &r.expr.derived {
             case ast.Binary_Expr: generate_binary_expr(sb, &s, indent);
-            case ast.Ident:       generate_ident(sb, &s, indent, false);
+            case ast.Ident:       generate_ident(sb, &s, indent);
             case ast.Paren_Expr:  generate_paren_expr(sb, &s, indent);
             case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
             case: fmt.println("generate_range_stmt expr\n", s^);
@@ -733,7 +733,7 @@ generate_range_stmt :: proc(sb: ^strings.Builder, r: ^ast.Range_Stmt, indent: in
 generate_for_stmt :: proc(sb: ^strings.Builder, r: ^ast.For_Stmt, indent: int) {
     if r.label != nil {
         switch s in &r.label.derived {
-            case ast.Ident: generate_ident(sb, &s, indent, false);
+            case ast.Ident: generate_ident(sb, &s, indent);
             case: fmt.println("generate_range_stmt label\n", s^);
         }
         strings.write_string(sb, ": ");
@@ -785,7 +785,7 @@ generate_for_stmt :: proc(sb: ^strings.Builder, r: ^ast.For_Stmt, indent: int) {
 generate_if_stmt :: proc(sb: ^strings.Builder, r: ^ast.If_Stmt, indent: int) {
     if r.label != nil {
         switch s in &r.label.derived {
-            case ast.Ident: generate_ident(sb, &s, indent, false);
+            case ast.Ident: generate_ident(sb, &s, indent);
             case: fmt.println("generate_range_stmt label\n", s^);
         }
         strings.write_string(sb, ": ");
@@ -798,7 +798,7 @@ generate_if_stmt :: proc(sb: ^strings.Builder, r: ^ast.If_Stmt, indent: int) {
         }
     }
     switch s in &r.cond.derived {
-        case ast.Ident:       generate_ident(sb, &s, indent, false);
+        case ast.Ident:       generate_ident(sb, &s, indent);
         case ast.Binary_Expr: generate_binary_expr(sb, &s, indent);
         case ast.Unary_Expr:  generate_unary_expr(sb, &s, indent);
         case ast.Call_Expr:   generate_call_expr(sb, &s, indent);
@@ -841,7 +841,7 @@ generate_if_stmt :: proc(sb: ^strings.Builder, r: ^ast.If_Stmt, indent: int) {
 generate_when_stmt :: proc(sb: ^strings.Builder, r: ^ast.When_Stmt, indent: int) {
     strings.write_string(sb, "when ");
     switch s in &r.cond.derived {
-        case ast.Ident:       generate_ident(sb, &s, indent, false);
+        case ast.Ident:       generate_ident(sb, &s, indent);
         case ast.Binary_Expr: generate_binary_expr(sb, &s, indent);
         case ast.Unary_Expr:  generate_unary_expr(sb, &s, indent);
         case: fmt.println("generate_when_stmt cond\n", s^);
@@ -889,7 +889,7 @@ generate_return_stmt :: proc(sb: ^strings.Builder, r: ^ast.Return_Stmt, indent: 
             case ast.Unary_Expr:  generate_unary_expr(sb, &s, indent);
             case ast.Basic_Lit:   generate_basic_lit(sb, &s, indent);
             case ast.Expr_Stmt:   generate_expr_stmt(sb, &s, indent);
-            case ast.Ident:       generate_ident(sb, &s, indent, false);
+            case ast.Ident:       generate_ident(sb, &s, indent);
             case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
             case ast.Binary_Expr: generate_binary_expr(sb, &s, indent);
             case ast.Type_Cast:   generate_type_cast(sb, &s, indent);
@@ -922,7 +922,7 @@ generate_assign_stmt :: proc(sb: ^strings.Builder, a: ^ast.Assign_Stmt, indent: 
                 if lhs_length > 1 && i < lhs_length - 1 do strings.write_string(sb, ", ");  
             }
             case ast.Ident: {
-                generate_ident(sb, &s, indent, false);
+                generate_ident(sb, &s, indent);
                 if lhs_length > 1 && i < lhs_length - 1 do strings.write_string(sb, ", ");       
             }
             case ast.Deref_Expr: generate_deref_expr(sb, &s, indent);
@@ -936,7 +936,7 @@ generate_assign_stmt :: proc(sb: ^strings.Builder, a: ^ast.Assign_Stmt, indent: 
     for v, i in a.rhs {
         switch s in &v.derived {
             case ast.Basic_Lit:  generate_basic_lit(sb, &s, indent);
-            case ast.Ident:  generate_ident(sb, &s, indent, false);
+            case ast.Ident:  generate_ident(sb, &s, indent);
             case ast.Comp_Lit:   generate_comp_lit(sb, &s, indent);
             case ast.Call_Expr: generate_call_expr(sb, &s, indent);
             case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
@@ -957,7 +957,7 @@ generate_assign_stmt :: proc(sb: ^strings.Builder, a: ^ast.Assign_Stmt, indent: 
 
 generate_slice_expr :: proc(sb: ^strings.Builder, a: ^ast.Slice_Expr, indent: int) {
     switch s in &a.expr.derived {
-        case ast.Ident: generate_ident(sb, &s, indent, false);
+        case ast.Ident: generate_ident(sb, &s, indent);
         case ast.Slice_Expr: generate_slice_expr(sb, &s, indent);
         case: fmt.println("generate_slice_expr expr\n", s^);
     }
@@ -967,7 +967,7 @@ generate_slice_expr :: proc(sb: ^strings.Builder, a: ^ast.Slice_Expr, indent: in
             case ast.Basic_Lit: generate_basic_lit(sb, &s, indent);
             case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
             case ast.Binary_Expr:   generate_binary_expr(sb, &s, indent);
-            case ast.Ident:         generate_ident(sb, &s, indent, false);
+            case ast.Ident:         generate_ident(sb, &s, indent);
             case: fmt.println("generate_slice_expr low\n", s^);
         }
     }
@@ -976,7 +976,7 @@ generate_slice_expr :: proc(sb: ^strings.Builder, a: ^ast.Slice_Expr, indent: in
         switch s in &a.high.derived {
             case ast.Basic_Lit: generate_basic_lit(sb, &s, indent);
             case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
-            case ast.Ident:     generate_ident(sb, &s, indent, false);
+            case ast.Ident:     generate_ident(sb, &s, indent);
             case: fmt.println("generate_slice_expr high\n", s^);
         }
     }
@@ -985,7 +985,7 @@ generate_slice_expr :: proc(sb: ^strings.Builder, a: ^ast.Slice_Expr, indent: in
 
 generate_selector_expr :: proc(sb: ^strings.Builder, s: ^ast.Selector_Expr, indent: int) {
     switch s in &s.expr.derived {
-        case ast.Ident:    generate_ident(sb, &s, indent, false);
+        case ast.Ident:    generate_ident(sb, &s, indent);
         case ast.Implicit: generate_implicit(sb, &s, indent);
         case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
         case ast.Call_Expr:     generate_call_expr(sb, &s, indent);
@@ -994,7 +994,7 @@ generate_selector_expr :: proc(sb: ^strings.Builder, s: ^ast.Selector_Expr, inde
     }
     strings.write_string(sb, ".");
     switch s in &s.field.derived {
-        case ast.Ident: generate_ident(sb, &s, indent, false);
+        case ast.Ident: generate_ident(sb, &s, indent);
         case: fmt.println("generate_selector_expr field\n", s^);
     }
 }
@@ -1002,21 +1002,21 @@ generate_selector_expr :: proc(sb: ^strings.Builder, s: ^ast.Selector_Expr, inde
 generate_implicit_selector_expr :: proc(sb: ^strings.Builder, t: ^ast.Implicit_Selector_Expr, indent: int) {
     strings.write_string(sb, ".");
     switch s in &t.field.derived {
-        case ast.Ident: generate_ident(sb, &s, indent, false);
+        case ast.Ident: generate_ident(sb, &s, indent);
         case: fmt.println("generate_implicit_selector_expr elem\n", s^);
     }
 }
 
 generate_index_expr :: proc(sb: ^strings.Builder, c: ^ast.Index_Expr, indent: int) {
     switch s in &c.expr.derived {
-        case ast.Ident: generate_ident(sb, &s, indent, false);
+        case ast.Ident: generate_ident(sb, &s, indent);
         case: fmt.println("generate_index_expr expr\n", s^);
     }
     strings.write_string(sb, "[");
     switch s in &c.index.derived {
         case ast.Basic_Lit: generate_basic_lit(sb, &s, indent);
         case ast.Index_Expr: generate_index_expr(sb, &s, indent);
-        case ast.Ident:     generate_ident(sb, &s, indent, false);
+        case ast.Ident:     generate_ident(sb, &s, indent);
         case ast.Binary_Expr: generate_binary_expr(sb, &s, indent);
         case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
         case ast.Implicit_Selector_Expr: generate_implicit_selector_expr(sb, &s, indent);
@@ -1027,7 +1027,7 @@ generate_index_expr :: proc(sb: ^strings.Builder, c: ^ast.Index_Expr, indent: in
 
 generate_deref_expr :: proc(sb: ^strings.Builder, e: ^ast.Deref_Expr, indent: int) {
     switch s in &e.expr.derived {
-        case ast.Ident: generate_ident(sb, &s, indent, false);
+        case ast.Ident: generate_ident(sb, &s, indent);
         case ast.Call_Expr: generate_call_expr(sb, &s, indent);
         case: fmt.println("generate_deref_expr expr\n", s^);
     }
@@ -1037,7 +1037,7 @@ generate_deref_expr :: proc(sb: ^strings.Builder, e: ^ast.Deref_Expr, indent: in
 generate_call_expr :: proc(sb: ^strings.Builder, c: ^ast.Call_Expr, indent: int) {
     switch s in &c.expr.derived {
         case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
-        case ast.Ident:         generate_ident(sb, &s, indent, false);
+        case ast.Ident:         generate_ident(sb, &s, indent);
         case ast.Paren_Expr:    generate_paren_expr(sb, &s, indent);
         case ast.Implicit:      generate_implicit(sb, &s, indent);
         case ast.Basic_Directive: generate_basic_directive(sb, &s, indent);
@@ -1052,7 +1052,7 @@ generate_call_expr :: proc(sb: ^strings.Builder, c: ^ast.Call_Expr, indent: int)
             case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
             case ast.Binary_Expr:   generate_binary_expr(sb, &s, indent);
             case ast.Unary_Expr:    generate_unary_expr(sb, &s, indent);
-            case ast.Ident:         generate_ident(sb, &s, indent, false);
+            case ast.Ident:         generate_ident(sb, &s, indent);
             case ast.Poly_Type:     generate_poly_type(sb, &s, indent);
             case ast.Slice_Expr:    generate_slice_expr(sb, &s, indent);
             case ast.Deref_Expr:    generate_deref_expr(sb, &s, indent);
@@ -1074,7 +1074,7 @@ generate_binary_expr :: proc(sb: ^strings.Builder, b: ^ast.Binary_Expr, indent: 
         case ast.Call_Expr:     generate_call_expr(sb, &s, indent);
         case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
         case ast.Basic_Lit:     generate_basic_lit(sb, &s, indent);
-        case ast.Ident:         generate_ident(sb, &s, indent, false);
+        case ast.Ident:         generate_ident(sb, &s, indent);
         case ast.Binary_Expr:   generate_binary_expr(sb, &s, indent);
         case ast.Paren_Expr:    generate_paren_expr(sb, &s, indent);
         case ast.Index_Expr:    generate_index_expr(sb, &s, indent);
@@ -1087,7 +1087,7 @@ generate_binary_expr :: proc(sb: ^strings.Builder, b: ^ast.Binary_Expr, indent: 
         case ast.Call_Expr:     generate_call_expr(sb, &s, indent);
         case ast.Basic_Lit:     generate_basic_lit(sb, &s, indent);
         case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
-        case ast.Ident:         generate_ident(sb, &s, indent, false);
+        case ast.Ident:         generate_ident(sb, &s, indent);
         case ast.Binary_Expr:   generate_binary_expr(sb, &s, indent);
         case ast.Paren_Expr:    generate_paren_expr(sb, &s, indent);
         case ast.Unary_Expr:    generate_unary_expr(sb, &s, indent);
@@ -1101,7 +1101,7 @@ generate_unary_expr :: proc(sb: ^strings.Builder, u: ^ast.Unary_Expr, indent: in
     strings.write_string(sb, u.op.text);
     if u.expr != nil {
         switch s in &u.expr.derived {
-            case ast.Ident: generate_ident(sb, &s, indent, false);
+            case ast.Ident: generate_ident(sb, &s, indent);
             case ast.Basic_Lit:    generate_basic_lit(sb, &s, indent);
             case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
             case ast.Paren_Expr:   generate_paren_expr(sb, &s, indent);
@@ -1132,7 +1132,7 @@ generate_proc_group :: proc(sb: ^strings.Builder, a: ^ast.Proc_Group, indent: in
         args_length := len(a.args);
         for v, i in a.args {
             switch s in &v.derived {
-                case ast.Ident: generate_ident(sb, &s, indent, false);
+                case ast.Ident: generate_ident(sb, &s, indent);
                 case: fmt.println("generate_proc_group args\n", s^);
             }
             if args_length > 1 && i < args_length - 1 do strings.write_string(sb, ", ");
@@ -1183,7 +1183,7 @@ generate_attribute :: proc(sb: ^strings.Builder, a: ^ast.Attribute, indent: int)
         switch s in &v.derived {
             case ast.Ident: {
                 strings.write_string(sb, "@");
-                generate_ident(sb, &s, indent, true);
+                generate_ident(sb, &s, indent);
                 strings.write_string(sb, "\n");
             }
             case ast.Field_Value: {
@@ -1196,8 +1196,7 @@ generate_attribute :: proc(sb: ^strings.Builder, a: ^ast.Attribute, indent: int)
     }
 }
 
-generate_ident :: proc(sb: ^strings.Builder, i: ^ast.Ident, indent: int, check_attr: bool) {
-    populate_meta_info(sb, i, indent, check_attr);
+generate_ident :: proc(sb: ^strings.Builder, i: ^ast.Ident, indent: int) {
     strings.write_string(sb, i.name);
 }
 
@@ -1212,7 +1211,7 @@ generate_value :: proc(sb: ^strings.Builder, t: ^tokenizer.Token, indent: int) {
 // @todo(zh): Figure out a better to do this, since bit fields use `:` and not `=`
 generate_field_value :: proc(sb: ^strings.Builder, f: ^ast.Field_Value, indent: int, assign := "=") {
     switch s in &f.field.derived {
-        case ast.Ident: generate_ident(sb, &s, indent, false);
+        case ast.Ident: generate_ident(sb, &s, indent);
         case ast.Basic_Lit: generate_basic_lit(sb, &s, indent);
         case ast.Binary_Expr: generate_binary_expr(sb, &s, indent);
         case: fmt.println("generate_field_value field\n", s^);
@@ -1228,7 +1227,7 @@ generate_field_value :: proc(sb: ^strings.Builder, f: ^ast.Field_Value, indent: 
         }
         case ast.Ident: {
             strings.write_string(sb, assign);
-            generate_ident(sb, &s, indent, false);
+            generate_ident(sb, &s, indent);
         }
         case: fmt.println("generate_field_value value\n", s^);
     }
@@ -1253,7 +1252,7 @@ generate_field :: proc(sb: ^strings.Builder, f: ^ast.Field, indent: int) {
     for v, i in f.names {
         switch s in &v.derived {
             case ast.Ident: {
-                generate_ident(sb, &s, indent, false);
+                generate_ident(sb, &s, indent);
                 if names_length > 1 && i < names_length - 1 do strings.write_string(sb, ", ");
             }
             case: fmt.println("generate_field names\n", s^);
@@ -1262,7 +1261,7 @@ generate_field :: proc(sb: ^strings.Builder, f: ^ast.Field, indent: int) {
     if f.type != nil {
         strings.write_string(sb, ": ");
         switch s in &f.type.derived {
-            case ast.Ident:         generate_ident(sb, &s, indent, false);
+            case ast.Ident:         generate_ident(sb, &s, indent);
             case ast.Poly_Type:     generate_poly_type(sb, &s, indent);
             case ast.Pointer_Type:  generate_pointer_type(sb, &s, indent);
             case ast.Typeid_Type:   generate_typeid_type(sb, &s, indent);
@@ -1284,7 +1283,7 @@ generate_field :: proc(sb: ^strings.Builder, f: ^ast.Field, indent: int) {
             case ast.Basic_Directive: generate_basic_directive(sb, &s, indent);
             case ast.Selector_Expr:   generate_selector_expr(sb, &s, indent);
             case ast.Basic_Lit:       generate_basic_lit(sb, &s, indent);
-            case ast.Ident:           generate_ident(sb, &s, indent, false);
+            case ast.Ident:           generate_ident(sb, &s, indent);
             case: fmt.println("generate_field default_value\n", s^);
         } 
     }
@@ -1293,7 +1292,7 @@ generate_field :: proc(sb: ^strings.Builder, f: ^ast.Field, indent: int) {
 generate_ellipsis :: proc(sb: ^strings.Builder, e: ^ast.Ellipsis, indent: int) {
     strings.write_string(sb, "..");
     switch s in &e.expr.derived {
-        case ast.Ident: generate_ident(sb, &s, indent, false);
+        case ast.Ident: generate_ident(sb, &s, indent);
         case: fmt.println("generate_ellipsis expr\n", s^);
     }
 }
@@ -1312,7 +1311,7 @@ generate_case_clause :: proc(sb: ^strings.Builder, r: ^ast.Case_Clause, indent: 
                 case ast.Selector_Expr:          generate_selector_expr(sb, &s, indent);
                 case ast.Basic_Lit:              generate_basic_lit(sb, &s, indent);
                 case ast.Binary_Expr:            generate_binary_expr(sb, &s, indent);
-                case ast.Ident:                  generate_ident(sb, &s, indent, false);
+                case ast.Ident:                  generate_ident(sb, &s, indent);
                 case: fmt.println("generate_case_clause list\n", s^);
             }
         }
@@ -1345,7 +1344,7 @@ generate_type_cast :: proc(sb: ^strings.Builder, t: ^ast.Type_Cast, indent: int)
     strings.write_string(sb, ")");
     if t.expr != nil {
         switch s in &t.expr.derived {
-            case ast.Ident: generate_ident(sb, &s, indent, false);
+            case ast.Ident: generate_ident(sb, &s, indent);
             case: fmt.println("generate_type_cast expr\n", s^);
         }
     }
@@ -1361,7 +1360,7 @@ generate_comp_lit :: proc(sb: ^strings.Builder, a: ^ast.Comp_Lit, indent: int) {
             case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
             case ast.Map_Type:      generate_map_type(sb, &s, indent);
             case ast.Dynamic_Array_Type: generate_dynamic_array_type(sb, &s, indent);
-            case ast.Ident:         generate_ident(sb, &s, indent, false);
+            case ast.Ident:         generate_ident(sb, &s, indent);
             case ast.Bit_Set_Type:   generate_bit_set_type(sb, &s, indent);
             case: fmt.println("generate_comp_lit type\n", s^);
         }
@@ -1375,7 +1374,7 @@ generate_comp_lit :: proc(sb: ^strings.Builder, a: ^ast.Comp_Lit, indent: int) {
                 case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
                 case ast.Unary_Expr:    generate_unary_expr(sb, &s, indent);
                 case ast.Comp_Lit:      generate_comp_lit(sb, &s, indent);
-                case ast.Ident:         generate_ident(sb, &s, indent, false);
+                case ast.Ident:         generate_ident(sb, &s, indent);
                 case ast.Call_Expr:     generate_call_expr(sb, &s, indent);
                 case ast.Slice_Expr:    generate_slice_expr(sb, &s, indent);
                 case ast.Field_Value:   generate_field_value(sb, &s, indent);
