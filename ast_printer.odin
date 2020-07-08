@@ -551,7 +551,6 @@ generate_pointer_type :: proc(sb: ^strings.Builder, p: ^ast.Pointer_Type, indent
         }
         case: fmt.println("generate_pointer_type\n", s^);
     }
-    fmt.prin
 }
 
 ///////////////////////////////////////////////
