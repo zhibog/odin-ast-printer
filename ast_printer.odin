@@ -19,9 +19,9 @@ print_ast :: proc(file_path: string, sb: ^strings.Builder) {
             root := p.file;
             indent := 0;
 
-            strings.write_string(&sb, "package ");
-            strings.write_string(&sb, root.pkg_name);
-            strings.write_string(&sb, "\n\n");
+            strings.write_string(sb, "package ");
+            strings.write_string(sb, root.pkg_name);
+            strings.write_string(sb, "\n\n");
             
             length := len(root.decls);
             for v, i in root.decls {
