@@ -289,6 +289,14 @@ generate_value_decl :: proc(sb: ^strings.Builder, decl: ^ast.Value_Decl, indent:
                 generate_bit_field_type(sb, &s, indent);
                 strings.write_string(sb, ";");
             }
+            case ast.Ternary_Expr: {
+                generate_ternary_expr(sb, &s, indent);
+                strings.write_string(sb, ";");
+            }
+            case ast.Type_Assertion: {
+                generate_type_assertion(sb, &s, indent);
+                strings.write_string(sb, ";");
+            }
             case: fmt.println("generate_value_decl values\n", s^);
         }
     }
@@ -304,9 +312,18 @@ generate_distinct_type :: proc(sb: ^strings.Builder, a: ^ast.Distinct_Type, inde
         case ast.Bit_Set_Type: generate_bit_set_type(sb, &s, indent);
         case ast.Array_Type:   generate_array_type(sb, &s, indent);
         case ast.Ident:        generate_ident(sb, &s, indent);
+        case ast.Helper_Type:  generate_helper_type(sb, &s, indent);
         case: fmt.println("generate_distinct_type type\n", s^);
     }
     strings.write_string(sb, ";");
+}
+
+generate_helper_type :: proc(sb: ^strings.Builder, a: ^ast.Helper_Type, indent: int) {
+    strings.write_string(sb, "#");
+    switch s in &a.type.derived {
+        case ast.Proc_Type:  generate_proc_type(sb, &s, indent);
+        case: fmt.println("generate_helper_type type\n", s^);
+    }
 }
 
 generate_array_type :: proc(sb: ^strings.Builder, a: ^ast.Array_Type, indent: int) {
@@ -347,11 +364,17 @@ generate_enum_type :: proc(sb: ^strings.Builder, st: ^ast.Enum_Type, indent: int
                 generate_ident(sb, &s, indent);
                 strings.write_string(sb, ",\n");
             }
+            case ast.Field_Value: {
+                generate_field_value(sb, &s, indent);
+                strings.write_string(sb, ",\n");
+            }
             case: fmt.println("generate_enum_type fields\n", s^);
         }
     }
     strings.write_string(sb, "};\n");
 }
+
+inside_struct := false;
 
 generate_struct_type :: proc(sb: ^strings.Builder, st: ^ast.Struct_Type, indent: int) {
     switch s in &st.fields.derived {
@@ -372,7 +395,11 @@ generate_struct_type :: proc(sb: ^strings.Builder, st: ^ast.Struct_Type, indent:
         }
         case: fmt.println("generate_struct_type\n", s^);
     }
-    strings.write_string(sb, "\n};\n");
+    if inside_struct {
+        strings.write_string(sb, "    },\n");
+    } else {
+        strings.write_string(sb, "};\n");
+    }
 }
 
 // @todo(zh): one ; too much from here
@@ -432,6 +459,9 @@ generate_proc_type :: proc(sb: ^strings.Builder, p: ^ast.Proc_Type, indent: int)
         case .Std_Call: strings.write_string(sb, " \"std\" ");
         case .Fast_Call: strings.write_string(sb, " \"fast\" ");
         case .Foreign_Block_Default:
+        case .Pure_None:
+        case .Pure: strings.write_string(sb, " \"pure\" ");
+        case .None:
     }
     strings.write_string(sb, "(");
     params_length := len(p.params.list);
@@ -446,6 +476,17 @@ generate_proc_type :: proc(sb: ^strings.Builder, p: ^ast.Proc_Type, indent: int)
         }
     }
     strings.write_string(sb, ")");
+    if p.tags != nil {
+        if ast.Proc_Tag.Bounds_Check in p.tags {
+            strings.write_string(sb, " #bounds_check");
+        }
+        if ast.Proc_Tag.No_Bounds_Check in p.tags {
+            strings.write_string(sb, " #no_bounds_check");
+        }
+        if ast.Proc_Tag.Optional_Ok in p.tags {
+            strings.write_string(sb, " #optional_ok");
+        }
+    }
     if p.results != nil {
         strings.write_string(sb, " -> ");
         res_length := len(p.results.list) ;
@@ -574,6 +615,7 @@ generate_pointer_type :: proc(sb: ^strings.Builder, p: ^ast.Pointer_Type, indent
         case ast.Poly_Type: {
             generate_poly_type(sb, &s, indent);
         }
+        case ast.Pointer_Type: generate_pointer_type(sb, &s, indent);
         case: fmt.println("generate_pointer_type\n", s^);
     }
 }
@@ -614,6 +656,7 @@ generate_block_stmt :: proc(sb: ^strings.Builder, b: ^ast.Block_Stmt, indent: in
             case ast.Foreign_Import_Decl: generate_foreign_import_decl(sb, &s, indent);
             case ast.Foreign_Block_Decl: generate_foreign_block_decl(sb, &s, indent);
             case ast.Branch_Stmt: generate_branch_stmt(sb, &s, indent);
+            case ast.Inline_Range_Stmt: generate_inline_range_stmt(sb, &s, indent);
             case: fmt.println("generate_block_stmt stmts\n", s^);
         }
         strings.write_string(sb, "\n");
@@ -633,6 +676,7 @@ generate_defer_stmt :: proc(sb: ^strings.Builder, r: ^ast.Defer_Stmt, indent: in
 }
 
 generate_branch_stmt :: proc(sb: ^strings.Builder, r: ^ast.Branch_Stmt, indent: int) {
+    fmt.println(r);
     strings.write_string(sb, r.tok.text);
     strings.write_string(sb, ";");
 }
@@ -650,7 +694,6 @@ generate_type_switch_stmt :: proc(sb: ^strings.Builder, r: ^ast.Type_Switch_Stmt
     }
     strings.write_string(sb, " switch ");
     if r.tag != nil {
-        fmt.println("aaa\n", r.tag.derived);
         switch s in &r.tag.derived {
             case ast.Assign_Stmt: generate_assign_stmt(sb, &s, indent);
             case: fmt.println("generate_type_switch_stmt tag\n", s^);
@@ -976,6 +1019,56 @@ generate_assign_stmt :: proc(sb: ^strings.Builder, a: ^ast.Assign_Stmt, indent: 
     }
 }
 
+generate_inline_range_stmt :: proc(sb: ^strings.Builder, r: ^ast.Inline_Range_Stmt, indent: int) {
+    strings.write_string(sb, "inline ");
+    if r.label != nil {
+        switch s in &r.label.derived {
+            case ast.Ident: generate_ident(sb, &s, indent);
+            case: fmt.println("generate_inline_range_stmt label\n", s^);
+        }
+        strings.write_string(sb, ": ");
+    }
+    strings.write_string(sb, "for ");
+    if r.val0 != nil {
+        switch s in &r.val0.derived {
+            case ast.Ident: generate_ident(sb, &s, indent);
+            case: fmt.println("generate_inline_range_stmt val0\n", s^);
+        }
+    }
+    if r.val1 != nil {
+        strings.write_string(sb, ", ");
+        switch s in &r.val1.derived {
+            case ast.Ident: generate_ident(sb, &s, indent);
+            case: fmt.println("generate_inline_range_stmt val1\n", s^);
+        }
+    }
+    strings.write_string(sb, " in ");
+    if r.expr != nil {
+        switch s in &r.expr.derived {
+            case ast.Binary_Expr: generate_binary_expr(sb, &s, indent);
+            case ast.Ident:       generate_ident(sb, &s, indent);
+            case ast.Paren_Expr:  generate_paren_expr(sb, &s, indent);
+            case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
+            case: fmt.println("generate_inline_range_stmt expr\n", s^);
+        }
+    }
+    if r.body != nil {
+        switch s in &r.body.derived {
+            case ast.Block_Stmt: {
+                if s.uses_do {
+                    strings.write_string(sb, " do ");
+                    generate_block_stmt(sb, &s, indent);
+                } else {
+                    strings.write_string(sb, " {\n    ");
+                    generate_block_stmt(sb, &s, indent);
+                    strings.write_string(sb, "    }");
+                }
+            }
+            case: fmt.println("generate_inline_range_stmt body\n", s^);
+        }
+    }
+}
+
 ///////////////////////////////////////////////
 // Expressions
 ///////////////////////////////////////////////
@@ -1054,6 +1147,7 @@ generate_deref_expr :: proc(sb: ^strings.Builder, e: ^ast.Deref_Expr, indent: in
     switch s in &e.expr.derived {
         case ast.Ident: generate_ident(sb, &s, indent);
         case ast.Call_Expr: generate_call_expr(sb, &s, indent);
+        case ast.Paren_Expr: generate_paren_expr(sb, &s, indent);
         case: fmt.println("generate_deref_expr expr\n", s^);
     }
     strings.write_string(sb, e.op.text);
@@ -1141,9 +1235,60 @@ generate_paren_expr :: proc(sb: ^strings.Builder, p: ^ast.Paren_Expr, indent: in
         case ast.Binary_Expr:  generate_binary_expr(sb, &s, indent);
         case ast.Pointer_Type: generate_pointer_type(sb, &s, indent);
         case ast.Comp_Lit:     generate_comp_lit(sb, &s, indent);
+        case ast.Basic_Lit:    generate_basic_lit(sb, &s, indent);
+        case ast.Call_Expr:    generate_call_expr(sb, &s, indent);
+        case ast.Proc_Type:    generate_proc_type(sb, &s, indent);
+        case ast.Unary_Expr:   generate_unary_expr(sb, &s, indent);
+        case ast.Ident:        generate_ident(sb, &s, indent);
+        case ast.Paren_Expr:   generate_paren_expr(sb, &s, indent);
         case: fmt.println("generate_paren_expr\n", s^);
     }
     strings.write_string(sb, ")");
+}
+
+generate_ternary_expr :: proc(sb: ^strings.Builder, p: ^ast.Ternary_Expr, indent: int) {
+    switch s in &p.cond.derived {
+        case ast.Binary_Expr:  generate_binary_expr(sb, &s, indent);
+        case ast.Pointer_Type: generate_pointer_type(sb, &s, indent);
+        case ast.Comp_Lit:     generate_comp_lit(sb, &s, indent);
+        case ast.Basic_Lit:    generate_basic_lit(sb, &s, indent);
+        case ast.Call_Expr:    generate_call_expr(sb, &s, indent);
+        case ast.Proc_Type:    generate_proc_type(sb, &s, indent);
+        case ast.Unary_Expr:   generate_unary_expr(sb, &s, indent);
+        case ast.Ident:        generate_ident(sb, &s, indent);
+        case ast.Paren_Expr:   generate_paren_expr(sb, &s, indent);
+        case: fmt.println("generate_ternary_expr cond\n", s^);
+    }
+    strings.write_string(sb, " ");
+    strings.write_string(sb, p.op1.text);
+    strings.write_string(sb, " ");
+    switch s in &p.x.derived {
+        case ast.Binary_Expr:  generate_binary_expr(sb, &s, indent);
+        case ast.Pointer_Type: generate_pointer_type(sb, &s, indent);
+        case ast.Comp_Lit:     generate_comp_lit(sb, &s, indent);
+        case ast.Basic_Lit:    generate_basic_lit(sb, &s, indent);
+        case ast.Call_Expr:    generate_call_expr(sb, &s, indent);
+        case ast.Proc_Type:    generate_proc_type(sb, &s, indent);
+        case ast.Unary_Expr:   generate_unary_expr(sb, &s, indent);
+        case ast.Ident:        generate_ident(sb, &s, indent);
+        case ast.Paren_Expr:   generate_paren_expr(sb, &s, indent);
+        case: fmt.println("generate_ternary_expr x\n", s^);
+    }
+    strings.write_string(sb, " ");
+    strings.write_string(sb, p.op2.text);
+    strings.write_string(sb, " ");
+    switch s in &p.y.derived {
+        case ast.Binary_Expr:  generate_binary_expr(sb, &s, indent);
+        case ast.Pointer_Type: generate_pointer_type(sb, &s, indent);
+        case ast.Comp_Lit:     generate_comp_lit(sb, &s, indent);
+        case ast.Basic_Lit:    generate_basic_lit(sb, &s, indent);
+        case ast.Call_Expr:    generate_call_expr(sb, &s, indent);
+        case ast.Proc_Type:    generate_proc_type(sb, &s, indent);
+        case ast.Unary_Expr:   generate_unary_expr(sb, &s, indent);
+        case ast.Ident:        generate_ident(sb, &s, indent);
+        case ast.Paren_Expr:   generate_paren_expr(sb, &s, indent);
+        case: fmt.println("generate_ternary_expr x\n", s^);
+    }
 }
 
 ///////////////////////////////////////////////
@@ -1294,6 +1439,11 @@ generate_field :: proc(sb: ^strings.Builder, f: ^ast.Field, indent: int) {
             case ast.Selector_Expr: generate_selector_expr(sb, &s, indent);
             case ast.Ellipsis:      generate_ellipsis(sb, &s, indent);
             case ast.Call_Expr:     generate_call_expr(sb, &s, indent);
+            case ast.Struct_Type:  {
+                inside_struct = true;
+                generate_struct_type(sb, &s, indent);
+                inside_struct = false;
+            } 
             case: fmt.println("generate_field type\n", s^);
         } 
     }
@@ -1422,5 +1572,18 @@ generate_implicit :: proc(sb: ^strings.Builder, b: ^ast.Implicit, indent: int) {
 generate_basic_lit :: proc(sb: ^strings.Builder, b: ^ast.Basic_Lit, indent: int) {
     #partial switch b.tok.kind {
         case: generate_value(sb, &b.tok, indent);
+    }
+}
+
+generate_type_assertion :: proc(sb: ^strings.Builder, t: ^ast.Type_Assertion, indent: int) {
+    strings.write_string(sb, " := ");
+    switch s in &t.expr.derived {
+        case ast.Ident: generate_ident(sb, &s, indent);
+        case: fmt.println("generate_type_assertion expr\n", s^);
+    }
+    strings.write_string(sb, ".");
+    switch s in &t.type.derived {
+        case ast.Unary_Expr: generate_unary_expr(sb, &s, indent);
+        case: fmt.println("generate_type_assertion expr\n", s^);
     }
 }
